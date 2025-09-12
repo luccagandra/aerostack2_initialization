@@ -4,10 +4,16 @@
 # If still not working, try running the script as root.
 
 # User inputs
-read -p "Project name (base): " NAME_BASE
+read -p "Project/Drone name: " NAME_BASE
 read -p "Which Platform? (PX4 / Mavlink): " PLATFORM
 read -p "Which Mode? (Hardware / Simulation): " MODE
 
+SIMULATOR=""
+if [ "$MODE" == "Simulation" ]; then
+    read -p "Which Simulator? (GZ-Harmonic / Isaac-Sim / Other): " SIMULATOR
+fi
+
+# Alias
 echo "alias ${NAME_BASE}_docker='docker start -i ${NAME_BASE}_drone_env_cont && docker exec -it ${NAME_BASE}_drone_env_cont /bin/bash'" >> ~/.bashrc
 echo "Alias '${NAME_BASE}_docker' added to ~/.bashrc"
 
@@ -17,7 +23,11 @@ echo "=== Exporting DOCKER_BUILDKIT ==="
 export DOCKER_BUILDKIT=1
 
 echo "=== Building Docker Image ==="
-docker build --ssh default -t ${NAME_BASE}_drone_env_img -f Dockerfile_${PLATFORM}_${MODE} .
+if [ "$MODE" == "Simulation" ]; then
+    docker build --ssh default -t ${NAME_BASE}_drone_env_img -f Dockerfile_${PLATFORM}_${MODE}_${SIMULATOR} .
+else
+    docker build --ssh default -t ${NAME_BASE}_drone_env_img -f Dockerfile_${PLATFORM}_${MODE} .
+fi
 
 echo "=== Preparing Xauthority ==="
 xauth_list=$(xauth nlist :0 | tail -n 1 | sed -e 's/^..../ffff/')
