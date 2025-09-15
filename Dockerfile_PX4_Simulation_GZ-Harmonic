@@ -2,7 +2,7 @@
 
 # Ubuntu 22.04
 # ROS2 Humble
-# Aerostack2 + PX4 Dependencies + GZ Harmonic Simulator
+# Aerostack2
 
 FROM aerostack2/nightly-humble:latest
 
@@ -29,19 +29,18 @@ RUN apt-get install apt-utils software-properties-common -y
 RUN apt install git tmux tmuxinator -y
 
 ## ROS2 utils
-
 RUN apt-get install python3-rosdep  \
-                python3-pip     \
-                python3-colcon-common-extensions \
-                python3-colcon-mixin \
-                ros-dev-tools -y
+    python3-pip     \
+    python3-colcon-common-extensions \
+    python3-colcon-mixin \
+    ros-dev-tools -y
 
 RUN apt-get install python3-flake8 \
-                python3-flake8-builtins  \
-                python3-flake8-comprehensions \
-                python3-flake8-docstrings \
-                python3-flake8-import-order \
-                python3-flake8-quotes -y
+    python3-flake8-builtins  \
+    python3-flake8-comprehensions \
+    python3-flake8-docstrings \
+    python3-flake8-import-order \
+    python3-flake8-quotes -y
 
 RUN pip3 install pylint
 RUN pip3 install flake8==4.0.1
@@ -60,7 +59,6 @@ RUN mkdir -p /root/aerostack2_ws/src/
 WORKDIR /root/aerostack2_ws/src/
 
 # Agent forwarding during docker build https://stackoverflow.com/questions/43418188/ssh-agent-forwarding-during-docker-build
-
 ENV DOCKER_BUILDKIT=1
 RUN apt-get install -y openssh-client
 ENV GIT_SSH_COMMAND="ssh -v"
@@ -69,16 +67,23 @@ USER root
 RUN mkdir -p -m 0600 ~/.ssh/ && ssh-keyscan github.com >> ~/.ssh/known_hosts
 ARG HOME=/root
 
-RUN rm -rf aerostack2
-RUN --mount=type=ssh git clone git@github.com:ghost-drones/aerostack2.git
-
 RUN export GZ_VERSION=harmonic
 WORKDIR /root/aerostack2_ws/
-RUN . /opt/ros/$ROS_DISTRO/setup.sh && colcon build --symlink-install --parallel-workers 2 --cmake-args -DCMAKE_BUILD_TYPE=Release
+RUN . /opt/ros/$ROS_DISTRO/setup.sh && colcon build --symlink-install --parallel-workers 3 --cmake-args -DCMAKE_BUILD_TYPE=Release
+
+# Drone Environment
+WORKDIR $HOME
+RUN mkdir -p sim/src
+WORKDIR $HOME/sim/src
+RUN --mount=type=ssh git clone git@github.com:luccagandra/aerostack2_initialization.git
+
+COPY to_copy/tmux $HOME/.tmux.conf
+COPY to_copy/aliases $HOME/.bash_aliases
+RUN echo 'export GZ_SIM_RESOURCE_PATH=$GZ_SIM_RESOURCE_PATH:/root/sim/src/aerostack2_initialization/to_copy/models' >> ~/.bashrc
 
 # PX4
 WORKDIR /root/
-RUN --mount=type=ssh git clone -b release/1.16 git@github.com:PX4/PX4-Autopilot.git --recursive
+RUN --mount=type=ssh git clone -b release/1.15 git@github.com:PX4/PX4-Autopilot.git --recursive
 WORKDIR /root/PX4-Autopilot/
 
 # Upgrading the system
@@ -100,13 +105,14 @@ RUN make
 RUN sudo make install
 RUN sudo ldconfig /usr/local/lib/
 
-WORKDIR $HOME/px4_msgs/src/
-RUN git clone -b release/1.16 https://github.com/PX4/px4_msgs.git
+WORKDIR $HOME/sim/src/
+RUN git clone -b release/1.15 https://github.com/PX4/px4_msgs.git
 RUN git clone https://github.com/PX4/px4_ros_com.git
-WORKDIR $HOME/px4_msgs
+WORKDIR $HOME/sim
 RUN rosdep install --from-paths src --ignore-src -r -y
 RUN . /opt/ros/$ROS_DISTRO/setup.sh && colcon build --symlink-install
-RUN echo "source /root/px4_msgs/install/setup.bash" >> ~/.bashrc
+RUN echo "source /root/sim/install/setup.bash" >> ~/.bashrc
+
 RUN sudo apt-get install nano
 
 # AS2 Aerial Platforms
@@ -114,5 +120,8 @@ WORKDIR $HOME/aerostack2_ws/src/aerostack2/as2_aerial_platforms
 
 # PX4 Platform
 RUN --mount=type=ssh git clone git@github.com:ghost-drones/as2_platform_pixhawk.git
+
+WORKDIR /root/aerostack2_ws
+RUN pip3 install numpy==1.24.4
 
 CMD ["bash"]
