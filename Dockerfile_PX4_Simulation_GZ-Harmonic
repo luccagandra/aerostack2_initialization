@@ -67,10 +67,6 @@ USER root
 RUN mkdir -p -m 0600 ~/.ssh/ && ssh-keyscan github.com >> ~/.ssh/known_hosts
 ARG HOME=/root
 
-RUN export GZ_VERSION=harmonic
-WORKDIR /root/aerostack2_ws/
-RUN . /opt/ros/$ROS_DISTRO/setup.sh && colcon build --symlink-install --parallel-workers 3 --cmake-args -DCMAKE_BUILD_TYPE=Release
-
 # Drone Environment
 WORKDIR $HOME
 RUN mkdir -p sim/src
@@ -79,7 +75,7 @@ RUN --mount=type=ssh git clone git@github.com:luccagandra/aerostack2_initializat
 
 COPY to_copy/tmux $HOME/.tmux.conf
 COPY to_copy/aliases $HOME/.bash_aliases
-RUN echo 'export GZ_SIM_RESOURCE_PATH=$GZ_SIM_RESOURCE_PATH:/root/sim/src/aerostack2_initialization/to_copy/models' >> ~/.bashrc
+RUN echo 'export GZ_SIM_RESOURCE_PATH=$GZ_SIM_RESOURCE_PATH:/root/sim/src/drone_environment/models' >> ~/.bashrc
 
 # PX4
 WORKDIR /root/
@@ -94,8 +90,9 @@ RUN apt-get install wget -y
 RUN ./Tools/setup/ubuntu.sh --no-nuttx
 RUN make px4_sitl
 
-# PX4 Offboard dependencies
 WORKDIR $HOME
+
+# PX4 Offboard dependencies
 RUN git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
 WORKDIR $HOME/Micro-XRCE-DDS-Agent
 RUN mkdir build
@@ -115,13 +112,27 @@ RUN echo "source /root/sim/install/setup.bash" >> ~/.bashrc
 
 RUN sudo apt-get install nano
 
+WORKDIR /root/aerostack2_ws
+RUN pip3 install numpy==1.24.4
+
+# AS2 (Custom)
+WORKDIR /root/aerostack2_ws/
+RUN rm -rf /build /logs /install
+WORKDIR /root/aerostack2_ws/src/
+RUN rm -rf aerostack2
+RUN --mount=type=ssh git clone git@github.com:ghost-drones/aerostack2.git
+RUN export GZ_VERSION=harmonic
+
 # AS2 Aerial Platforms
 WORKDIR $HOME/aerostack2_ws/src/aerostack2/as2_aerial_platforms
 
-# PX4 Platform
-RUN --mount=type=ssh git clone git@github.com:ghost-drones/as2_platform_pixhawk.git
+# Build AS2
+WORKDIR /root/aerostack2_ws/
+RUN . /opt/ros/$ROS_DISTRO/setup.sh && colcon build --symlink-install --parallel-workers 3 --cmake-args -DCMAKE_BUILD_TYPE=Release
 
-WORKDIR /root/aerostack2_ws
-RUN pip3 install numpy==1.24.4
+WORKDIR $HOME/aerostack2_ws/src/aerostack2/as2_aerial_platforms
+
+# PX4 Platform (Custom)
+RUN --mount=type=ssh git clone git@github.com:ghost-drones/as2_platform_pixhawk.git
 
 CMD ["bash"]
