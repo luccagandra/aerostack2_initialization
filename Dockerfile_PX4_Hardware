@@ -4,7 +4,7 @@
 # ROS2 Humble
 # Aerostack2 + PX4 Dependencies
 
-FROM osrf/ros:humble-desktop
+FROM ghcr.io/sloretz/ros:humble-ros-core
 
 WORKDIR /root/
 
@@ -15,17 +15,17 @@ RUN apt install git tmux tmuxinator -y
 ## ROS2 utils
 
 RUN apt-get install python3-rosdep  \
-                python3-pip     \
-                python3-colcon-common-extensions \
-                python3-colcon-mixin \
-                ros-dev-tools -y
+    python3-pip     \
+    python3-colcon-common-extensions \
+    python3-colcon-mixin \
+    ros-dev-tools -y
 
 RUN apt-get install python3-flake8 \
-                python3-flake8-builtins  \
-                python3-flake8-comprehensions \
-                python3-flake8-docstrings \
-                python3-flake8-import-order \
-                python3-flake8-quotes -y
+    python3-flake8-builtins  \
+    python3-flake8-comprehensions \
+    python3-flake8-docstrings \
+    python3-flake8-import-order \
+    python3-flake8-quotes -y
 
 RUN pip3 install pylint
 RUN pip3 install flake8==4.0.1
@@ -78,7 +78,7 @@ RUN sudo make install
 RUN sudo ldconfig /usr/local/lib/
 
 WORKDIR $HOME/px4_msgs/src/
-RUN git clone -b release/1.16 https://github.com/PX4/px4_msgs.git
+RUN git clone -b release/1.15 https://github.com/PX4/px4_msgs.git
 RUN git clone https://github.com/PX4/px4_ros_com.git
 WORKDIR $HOME/px4_msgs
 RUN rosdep install --from-paths src --ignore-src -r -y
