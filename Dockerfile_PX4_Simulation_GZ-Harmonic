@@ -1,4 +1,4 @@
-# Lucca Gandra Graduation Thesis 2025
+# Lucca Gandra
 
 # Ubuntu 22.04
 # ROS2 Humble
@@ -79,7 +79,7 @@ RUN echo 'export GZ_SIM_RESOURCE_PATH=$GZ_SIM_RESOURCE_PATH:/root/sim/src/drone_
 
 # PX4
 WORKDIR /root/
-RUN --mount=type=ssh git clone -b release/1.15 git@github.com:PX4/PX4-Autopilot.git --recursive
+RUN --mount=type=ssh git clone -b release/1.14 git@github.com:PX4/PX4-Autopilot.git --recursive
 WORKDIR /root/PX4-Autopilot/
 
 # Upgrading the system
@@ -103,7 +103,7 @@ RUN sudo make install
 RUN sudo ldconfig /usr/local/lib/
 
 WORKDIR $HOME/sim/src/
-RUN git clone -b release/1.15 https://github.com/PX4/px4_msgs.git
+RUN git clone -b release/1.16 https://github.com/PX4/px4_msgs.git
 RUN git clone https://github.com/PX4/px4_ros_com.git
 WORKDIR $HOME/sim
 RUN rosdep install --from-paths src --ignore-src -r -y
@@ -128,7 +128,7 @@ WORKDIR $HOME/aerostack2_ws/src/aerostack2/as2_aerial_platforms
 
 # Build AS2
 WORKDIR /root/aerostack2_ws/
-RUN . /opt/ros/$ROS_DISTRO/setup.sh && colcon build --symlink-install --parallel-workers 3 --cmake-args -DCMAKE_BUILD_TYPE=Release
+#RUN . /opt/ros/$ROS_DISTRO/setup.sh && colcon build --symlink-install --parallel-workers 3 --cmake-args -DCMAKE_BUILD_TYPE=Release
 
 WORKDIR $HOME/aerostack2_ws/src/aerostack2/as2_aerial_platforms
 

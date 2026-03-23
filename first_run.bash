@@ -8,14 +8,18 @@ read -p "Project/Drone name: " NAME_BASE
 read -p "Which Platform? (PX4 / Mavlink): " PLATFORM
 read -p "Which Mode? (Hardware / Simulation): " MODE
 
+# Pergunta sobre a GPU Nvidia
+read -p "Do you have an Nvidia GPU and nvidia-docker installed? (y/n): " HAS_NVIDIA
+if [ "$HAS_NVIDIA" == "y" ]; then
+    GPU_FLAG="--gpus all"
+else
+    GPU_FLAG=""
+fi
+
 SIMULATOR=""
 if [ "$MODE" == "Simulation" ]; then
     read -p "Which Simulator? (GZ-Harmonic / Isaac-Sim / Other): " SIMULATOR
 fi
-
-# Alias
-echo "alias ${NAME_BASE}_docker='docker start -i ${NAME_BASE}_drone_env_cont && docker exec -it ${NAME_BASE}_drone_env_cont /bin/bash'" >> ~/.bashrc
-echo "Alias '${NAME_BASE}_docker' added to ~/.bashrc"
 
 XAUTH=/tmp/.docker.xauth
 
@@ -54,6 +58,10 @@ echo "Running Docker container..."
 # Hook to current SSH_AUTH_SOCK (it changes dynamically)
 ln -sf $SSH_AUTH_SOCK ~/.ssh/ssh_auth_sock
 
+# Alias
+echo "alias ${NAME_BASE}_docker='docker start -i ${NAME_BASE}_drone_env_cont && docker exec -it ${NAME_BASE}_drone_env_cont /bin/bash'" >> ~/.bashrc
+echo "Alias '${NAME_BASE}_docker' added to ~/.bashrc"
+
 docker run -it \
     --env="DISPLAY=$DISPLAY" \
     --env="QT_X11_NO_MITSHM=1" \
@@ -65,10 +73,6 @@ docker run -it \
     --env SSH_AUTH_SOCK=/ssh-agent \
     --net=host \
     --privileged \
-    --gpus all \
+    $GPU_FLAG \
     --name ${NAME_BASE}_drone_env_cont \
     ${NAME_BASE}_drone_env_img
-
-# Create dynamic alias in ~/.bashrc
-echo "alias ${NAME_BASE}_docker='docker start -i ${NAME_BASE}_drone_env_cont && docker exec -it ${NAME_BASE}_drone_env_cont /bin/bash'" >> ~/.bashrc
-echo "Alias '${NAME_BASE}_docker' added to ~/.bashrc"
